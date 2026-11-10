@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PopCraft • Realistic Virtual Bubble Wrap Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Main Container -->
+  <div class="app-layout">
+    <!-- Header with Branding & Stats Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <span class="bubble-icon-dot"></span>
+        </div>
+        <div class="brand-text">
+          <h1>PopCraft</h1>
+          <span class="tagline">Ultra-Realistic Bubble Wrap</span>
+        </div>
+      </div>
+
+      <!-- Live Counters & Stats -->
+      <div class="stats-panel">
+        <div class="stat-card">
+          <span class="stat-label">Popped</span>
+          <div class="stat-value-wrap">
+            <span id="poppedCount" class="stat-value">0</span>
+            <span class="stat-divider">/</span>
+            <span id="totalCount" class="stat-sub">120</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">Progress</span>
+          <div class="stat-value-wrap">
+            <span id="progressPercent" class="stat-value highlight">0%</span>
+          </div>
+        </div>
+
+        <div class="stat-card desktop-only">
+          <span class="stat-label">Pop Speed</span>
+          <div class="stat-value-wrap">
+            <span id="speedMetric" class="stat-value">0</span>
+            <span class="stat-sub">pops/s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Quick Actions -->
+      <div class="actions-panel">
+        <!-- Sound toggle -->
+        <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound (M)" aria-label="Toggle Sound">
+          <svg id="soundOnIcon" class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <svg id="soundOffIcon" class="btn-svg hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+
+        <!-- Bubble Size / Density Toggle -->
+        <div class="size-selector" title="Sheet Size">
+          <button class="pill-btn active" data-size="standard">Standard</button>
+          <button class="pill-btn" data-size="jumbo">Jumbo</button>
+          <button class="pill-btn" data-size="micro">Micro</button>
+        </div>
+
+        <!-- Pattern Selector -->
+        <div class="pattern-selector" title="Arrangement Pattern">
+          <button class="pill-btn active" data-pattern="honeycomb">✨ Honeycomb</button>
+          <button class="pill-btn" data-pattern="diamond">💎 Diamond</button>
+          <button class="pill-btn" data-pattern="waves">🌊 Waves</button>
+        </div>
+
+        <!-- Pop All Button -->
+        <button id="popAllBtn" class="action-btn secondary-btn" title="Pop all in wave (A)">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+          </svg>
+          <span>Pop All</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="resetBtn" class="action-btn primary-btn" title="New Sheet (R)">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            <path d="M3 21v-5h5"></path>
+          </svg>
+          <span>Reset Sheet</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Progress bar tracking overall sheet status -->
+    <div class="progress-bar-container">
+      <div id="progressBar" class="progress-bar-fill" style="width: 0%;"></div>
+    </div>
+
+    <!-- Mode Selector & Sound Mode Badges -->
+    <div class="toolbar-sub">
+      <div class="mode-toggles">
+        <label class="toggle-chip" title="Click & drag cursor across bubbles to pop like continuous finger running">
+          <input type="checkbox" id="glideModeToggle" checked>
+          <span class="chip-slider"></span>
+          <span class="chip-text">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Glide Pop (Drag)
+          </span>
+        </label>
+        
+        <label class="toggle-chip" title="Adds subtle rhythmic ambient relaxation music / chime sound">
+          <input type="checkbox" id="ambientToggle">
+          <span class="chip-slider"></span>
+          <span class="chip-text">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6z"/></svg>
+            Zen Ambience
+          </span>
+        </label>
+
+        <label class="toggle-chip" title="Haptic feedback on mobile tap">
+          <input type="checkbox" id="hapticToggle" checked>
+          <span class="chip-slider"></span>
+          <span class="chip-text">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-9.33-5M12 22v-3M12 5V2M4 12H2M7.05 7.05 5.64 5.64M16.95 16.95l1.41 1.41M16.95 7.05l1.41-1.41M7.05 16.95 5.64 18.36M22 12h-2"/></svg>
+            Haptics
+          </span>
+        </label>
+      </div>
+
+      <div class="quick-tips">
+        <span class="tip-pill"><kbd>Click</kbd> or <kbd>Drag</kbd> to pop</span>
+        <span class="tip-pill desktop-only"><kbd>R</kbd> Reset</span>
+        <span class="tip-pill desktop-only"><kbd>A</kbd> Pop All</span>
+        <span class="tip-pill desktop-only"><kbd>M</kbd> Mute</span>
+      </div>
+    </div>
+
+    <!-- Bubble Wrap Sheet Canvas / Wrapper -->
+    <main class="sheet-viewport" id="sheetViewport">
+      <!-- Realistic plastic sheet backing with frosted gloss sheen & seal seams -->
+      <div class="sheet-wrapper" id="sheetWrapper">
+        <div class="sheet-reflection-overlay"></div>
+        <div class="sheet-seam-texture"></div>
+
+        <!-- Dynamic Grid of Bubbles -->
+        <div class="bubble-grid" id="bubbleGrid">
+          <!-- Bubbles injected dynamically via JavaScript -->
+        </div>
+      </div>
+    </main>
+
+    <!-- Celebration Modal (When all popped) -->
+    <div class="modal-overlay hidden" id="celebrationModal">
+      <div class="celebration-card">
+        <div class="celebration-badge">
+          <span class="badge-emoji">🎉</span>
+        </div>
+        <h2 class="celebration-title">Sheet Completely Cleared!</h2>
+        <p class="celebration-desc">You've unlocked maximum relaxation. Every single air pocket has been delightfully burst.</p>
+        
+        <div class="celebration-stats">
+          <div class="c-stat">
+            <span class="c-val" id="clearedCount">120</span>
+            <span class="c-lbl">Bubbles Burst</span>
+          </div>
+          <div class="c-stat">
+            <span class="c-val" id="clearedTime">18.4s</span>
+            <span class="c-lbl">Time Taken</span>
+          </div>
+          <div class="c-stat">
+            <span class="c-val" id="clearedSpeed">6.5</span>
+            <span class="c-lbl">Peak Pops/Sec</span>
+          </div>
+        </div>
+
+        <div class="celebration-actions">
+          <button id="modalResetBtn" class="action-btn primary-btn celebration-btn">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+              <path d="M3 21v-5h5"></path>
+            </svg>
+            <span>Fresh New Sheet</span>
+          </button>
+          <button id="modalCloseBtn" class="action-btn secondary-btn">Review Deflated Sheet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
